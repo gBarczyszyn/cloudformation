@@ -1,0 +1,74 @@
+Parameters: 
+    UserPoolName: 
+      Type: String
+      Default: project-up
+      Description: Enter user pool name.
+    IdentityPoolName:
+        Type: String
+        Default: project-idp
+        Description: Enter identity pool name.
+    WebAppCallbackUrl:
+        Type: String
+        Description: Enter Callback URL for web application
+    UserPoolWebClientDomainPrefix:
+        Type: String
+        Default: project-authentication
+        Description: Enter Domain Prefix for login URL
+Resources:
+    UserPool:
+        Type: AWS::Cognito::UserPool
+        Properties: 
+            AccountRecoverySetting:
+                RecoveryMechanisms:
+                    - Name: verified_email
+                      Priority: 1          
+            AdminCreateUserConfig: 
+                AllowAdminCreateUserOnly: False
+            AutoVerifiedAttributes:
+                - 'email'
+            DeviceConfiguration: 
+                ChallengeRequiredOnNewDevice: True
+                DeviceOnlyRememberedOnUserPrompt: True
+            UsernameConfiguration:
+                CaseSensitive: False
+            UserPoolName: !Ref UserPoolName
+    UserPoolWebClient:
+        Type: AWS::Cognito::UserPoolClient
+        Properties: 
+            AllowedOAuthFlows: 
+                - code
+                - implicit
+            AllowedOAuthFlowsUserPoolClient: True
+            AllowedOAuthScopes: 
+                - phone
+                - email
+                - openid
+                - profile
+                - aws.cognito.signin.user.admin
+            CallbackURLs: 
+                - !Ref WebAppCallbackUrl
+            ClientName: web
+            ExplicitAuthFlows: 
+                - ALLOW_USER_PASSWORD_AUTH
+                - ALLOW_REFRESH_TOKEN_AUTH
+            GenerateSecret: False
+            PreventUserExistenceErrors: ENABLED
+            RefreshTokenValidity: 30
+            SupportedIdentityProviders: 
+                - COGNITO
+            UserPoolId: !Ref UserPool
+    UserPoolWebClientDomain:
+        Type: AWS::Cognito::UserPoolDomain
+        Properties:
+            Domain: !Ref UserPoolWebClientDomainPrefix
+            UserPoolId: !Ref UserPool
+    IdentityPool:
+        Type: AWS::Cognito::IdentityPool
+        Properties: 
+            AllowClassicFlow: True
+            AllowUnauthenticatedIdentities: False
+            CognitoIdentityProviders:
+                - ClientId: !Ref UserPoolWebClient
+                  ProviderName: !GetAtt UserPool.ProviderName
+                  ServerSideTokenCheck: True
+            IdentityPoolName: !Ref IdentityPoolName
